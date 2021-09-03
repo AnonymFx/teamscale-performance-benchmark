@@ -22,8 +22,11 @@ function run_benchmark() {
 }
 
 function run_all_benchmarks() {
+	echo Running precommit benchmark...
 	run_benchmark run_precommit
+	echo Running findings churn benchmark...
 	run_benchmark get_findings_churn
+	echo Running findings perspective benchmark
 	run_benchmark get_findings_perspecitve
 }
 
