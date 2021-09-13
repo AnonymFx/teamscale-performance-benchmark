@@ -1,4 +1,5 @@
 import argparse
+import csv
 import os
 import statistics
 import time
@@ -48,9 +49,9 @@ def run_benchmark(benchmark_function, args):
     return results
 
 
-def write_csv_row(row):
-    # TODO
-    return
+def write_csv_row(file, row):
+    writer = csv.writer(file)
+    writer.writerow(row)
 
 
 def generate_csv_header():
@@ -61,19 +62,20 @@ def generate_csv_header():
 
 
 def run_all_benchmarks(args):
-    write_csv_row(generate_csv_header())
+    with open("teamscale-benchmark-results.csv", mode="w") as csv_file:
+        write_csv_row(csv_file, generate_csv_header())
 
-    print("Running precommit benchmark...")
-    precommit_results = run_benchmark(run_precommit, args)
-    write_csv_row(precommit_results)
+        print("Running precommit benchmark...")
+        precommit_results = run_benchmark(run_precommit, args)
+        write_csv_row(csv_file, precommit_results)
 
-    print("Running findings churn benchmark...")
-    findings_churn_results = run_benchmark(get_findings_churn, args)
-    write_csv_row(findings_churn_results)
+        print("Running findings churn benchmark...")
+        findings_churn_results = run_benchmark(get_findings_churn, args)
+        write_csv_row(csv_file, findings_churn_results)
 
-    print("Running findings perspective benchmark...")
-    findings_perspective_results = run_benchmark(get_findings_perspective, args)
-    write_csv_row(findings_perspective_results)
+        print("Running findings perspective benchmark...")
+        findings_perspective_results = run_benchmark(get_findings_perspective, args)
+        write_csv_row(csv_file, findings_perspective_results)
 
 
 def main():
