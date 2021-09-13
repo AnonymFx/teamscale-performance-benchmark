@@ -4,7 +4,9 @@ import datetime
 import os
 import statistics
 import time
+import urllib.parse
 
+import requests
 import teamscale_client.data
 from teamscale_client.teamscale_client_config import TeamscaleClientConfig
 from teamscale_precommit_client import PrecommitClient
@@ -18,8 +20,14 @@ def run_precommit(args):
 
 
 def get_findings_churn(args):
-    # TODO
-    print("finding churn")
+    url = urllib.parse.urljoin(args.teamscale_url,
+                               "/api/projects/{0}/merge-requests/finding-churn".format(args.teamscale_project))
+    url_parts = list(urllib.parse.urlparse(url))
+    query = {"source": args.merge_source, "target": args.merge_target}
+    url_parts[4] = urllib.parse.urlencode(query)
+    url = urllib.parse.urlunparse(url_parts)
+
+    requests.get(url, auth=(args.teamscale_user, args.teamscale_access_key))
 
 
 def get_findings_perspective(args):
@@ -93,8 +101,10 @@ def main():
     arg_parser.add_argument("teamscale_url")
     arg_parser.add_argument("teamscale_user")
     arg_parser.add_argument("teamscale_access_key")
-    arg_parser.add_argument("teamscale_project")
     arg_parser.add_argument("precommit_project_folder")
+    arg_parser.add_argument("teamscale_project")
+    arg_parser.add_argument("merge_source")
+    arg_parser.add_argument("merge_target")
     args = arg_parser.parse_args()
 
     run_all_benchmarks(args)
