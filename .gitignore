@@ -2,3 +2,4 @@ precommit
 run.bat
 run.sh
 venv
+teamscale-benchmark-results.csv
