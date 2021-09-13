@@ -44,8 +44,8 @@ def run_benchmark(benchmark_function, args):
 
     additional_metrics = [statistics.mean(measurements), statistics.median(measurements)]
     results = ["{0}".format(benchmark_function.__name__)] + \
-              list(map(lambda value: "{0}".format(value), additional_metrics)) + \
-              list(map(lambda value: "{0}".format(value), measurements))
+              list(map(lambda value: "{:10.20f}".format(value), additional_metrics)) + \
+              list(map(lambda value: "{:10.20f}".format(value), measurements))
     return results
 
 
