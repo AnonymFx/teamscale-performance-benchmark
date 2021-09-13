@@ -1,6 +1,9 @@
 import argparse
 import os
+import statistics
+import time
 
+import teamscale_client.data
 from teamscale_client.teamscale_client_config import TeamscaleClientConfig
 from teamscale_precommit_client import PrecommitClient
 
@@ -23,17 +26,54 @@ def get_findings_perspective(args):
 
 
 def run_benchmark(benchmark_function, args):
-    # TODO Run the above defs (provided as argument) 10 times and output times needed for each, average, worst, best. Maybe write into csv.
-    benchmark_function(args)
+    measurements = []
+    test_run = 1
+    while len(measurements) < 10:
+        print("Running {0} for the {1} time:".format(benchmark_function.__name__, test_run))
+        try:
+            start = time.time()
+            benchmark_function(args)
+            end = time.time()
+            benchmark_time = end - start
+            measurements.append(benchmark_time)
+            test_run = test_run + 1
+        except teamscale_client.data.ServiceError:
+            print("Pre-commit ran two fast back to back, retrying test run {0}".format(test_run))
+            time.sleep(5)
+
+    additional_metrics = [statistics.mean(measurements), statistics.median(measurements)]
+    results = ["{0}".format(benchmark_function.__name__)] + \
+              list(map(lambda value: "{0}".format(value), additional_metrics)) + \
+              list(map(lambda value: "{0}".format(value), measurements))
+    return results
+
+
+def write_csv_row(row):
+    # TODO
+    return
+
+
+def generate_csv_header():
+    header = ["benchmark_name", "mean", "median"]
+    for i in range(1, 11):
+        header.append("measurement_{0}".format(i))
+    return header
 
 
 def run_all_benchmarks(args):
+    write_csv_row(generate_csv_header())
+
     print("Running precommit benchmark...")
-    run_benchmark(run_precommit, args)
+    precommit_results = run_benchmark(run_precommit, args)
+    write_csv_row(precommit_results)
+
     print("Running findings churn benchmark...")
-    run_benchmark(get_findings_churn, args)
+    findings_churn_results = run_benchmark(get_findings_churn, args)
+    write_csv_row(findings_churn_results)
+
     print("Running findings perspective benchmark...")
-    run_benchmark(get_findings_perspective, args)
+    findings_perspective_results = run_benchmark(get_findings_perspective, args)
+    write_csv_row(findings_perspective_results)
 
 
 def main():
