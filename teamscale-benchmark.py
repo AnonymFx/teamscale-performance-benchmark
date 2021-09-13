@@ -1,5 +1,6 @@
 import argparse
 import csv
+import datetime
 import os
 import statistics
 import time
@@ -29,6 +30,7 @@ def get_findings_perspective(args):
 def run_benchmark(benchmark_function, args):
     measurements = []
     test_run = 1
+    start_all = datetime.datetime.now()
     while len(measurements) < 10:
         print("Running {0} for the {1} time:".format(benchmark_function.__name__, test_run))
         try:
@@ -42,10 +44,15 @@ def run_benchmark(benchmark_function, args):
             print("Pre-commit ran two fast back to back, retrying test run {0}".format(test_run))
             time.sleep(5)
 
+    end_all = datetime.datetime.now()
+
     additional_metrics = [statistics.mean(measurements), statistics.median(measurements)]
     results = ["{0}".format(benchmark_function.__name__)] + \
+              ["{0}".format(start_all.timestamp()), "{0}".format(start_all)] + \
+              ["{0}".format(end_all.timestamp()), "{0}".format(end_all)] + \
               list(map(lambda value: "{:10.20f}".format(value), additional_metrics)) + \
               list(map(lambda value: "{:10.20f}".format(value), measurements))
+
     return results
 
 
@@ -55,7 +62,7 @@ def write_csv_row(file, row):
 
 
 def generate_csv_header():
-    header = ["benchmark_name", "mean", "median"]
+    header = ["benchmark_name", "start_timestamp", "start_time", "end_timestamp", "end_time", "mean", "median"]
     for i in range(1, 11):
         header.append("measurement_{0}".format(i))
     return header
