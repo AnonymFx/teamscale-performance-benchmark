@@ -12,7 +12,7 @@ from teamscale_precommit_client import PrecommitClient
 def run_precommit(args):
     teamscale_config = TeamscaleClientConfig.from_config_file(
         os.path.join(args.precommit_project_folder, ".teamscale-precommit.config"))
-    precommit_client = PrecommitClient(teamscale_config, "./precommit")
+    precommit_client = PrecommitClient(teamscale_config, args.precommit_project_folder)
     precommit_client.run()
 
 
@@ -65,9 +65,12 @@ def run_all_benchmarks(args):
     with open("teamscale-benchmark-results.csv", mode="w") as csv_file:
         write_csv_row(csv_file, generate_csv_header())
 
-        print("Running precommit benchmark...")
-        precommit_results = run_benchmark(run_precommit, args)
-        write_csv_row(csv_file, precommit_results)
+        if os.path.isdir(args.precommit_project_folder):
+            print("Running precommit benchmark...")
+            precommit_results = run_benchmark(run_precommit, args)
+            write_csv_row(csv_file, precommit_results)
+        else:
+            print("Could not find pre-commit folder '{0}'".format(args.precommit_project_folder))
 
         print("Running findings churn benchmark...")
         findings_churn_results = run_benchmark(get_findings_churn, args)
