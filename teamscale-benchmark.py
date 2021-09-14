@@ -5,6 +5,7 @@ import os
 import statistics
 import time
 import urllib.parse
+import json
 
 import requests
 import teamscale_client.data
@@ -41,14 +42,27 @@ def get_findings_perspective(args):
     requests.get(url, auth=(args.teamscale_user, args.teamscale_access_key))
 
 
+def get_server_status(args):
+    url = urllib.parse.urljoin(args.teamscale_url, "/api/execution-status/workers")
+    response = requests.get(url, auth=(args.teamscale_user, args.teamscale_access_key))
+
+    number_of_active_workers = sum(1 for x in response.json()[0]["workers"] if "taskName" in x)
+    job_queue_size = response.json()[0]["jobQueueSize"]
+
+    return number_of_active_workers, job_queue_size
+
+
 def run_benchmark(benchmark_function, args):
     measurements = []
     test_run = 1
     start_all = datetime.datetime.now()
+    number_of_active_workers = -1
+    job_queue_size = -1
     while len(measurements) < 10:
         print("Running {0} for the {1} time".format(benchmark_function.__name__, test_run))
         try:
             start = time.time()
+            (number_of_active_workers, job_queue_size) = get_server_status(args)
             benchmark_function(args)
             end = time.time()
             benchmark_time = end - start
@@ -64,6 +78,7 @@ def run_benchmark(benchmark_function, args):
     results = ["{0}".format(benchmark_function.__name__)] + \
               ["{0}".format(start_all.timestamp()), "{0}".format(start_all)] + \
               ["{0}".format(end_all.timestamp()), "{0}".format(end_all)] + \
+              ["{0}".format(number_of_active_workers), "{0}".format(job_queue_size)] + \
               list(map(lambda value: "{:10.20f}".format(value), additional_metrics)) + \
               list(map(lambda value: "{:10.20f}".format(value), measurements))
 
@@ -76,7 +91,8 @@ def write_csv_row(file, row):
 
 
 def generate_csv_header():
-    header = ["benchmark_name", "start_timestamp", "start_time", "end_timestamp", "end_time", "mean", "median"]
+    header = ["benchmark_name", "start_timestamp", "start_time", "end_timestamp", "end_time",
+              "number_of_active_workers", "job_queue_size", "mean", "median"]
     for i in range(1, 11):
         header.append("measurement_{0}".format(i))
     return header
