@@ -83,12 +83,12 @@ def generate_csv_header():
 
 
 def run_all_benchmarks(args):
-    benchmark_results_file = "teamscale-benchmark-results.csv"
+    benchmark_results_file = "./teamscale-benchmark-results.csv"
     if not os.path.isfile(benchmark_results_file):
         with open(benchmark_results_file, mode="w") as csv_file:
-            write_csv_row(benchmark_results_file, generate_csv_header())
-    with open(benchmark_results_file, mode="a") as csv_file:
+            write_csv_row(csv_file, generate_csv_header())
 
+    with open(benchmark_results_file, mode="a") as csv_file:
         if os.path.isdir(args.precommit_project_folder):
             print("Running precommit benchmark...")
             precommit_results = run_benchmark(run_precommit, args)
