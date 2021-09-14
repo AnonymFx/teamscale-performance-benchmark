@@ -31,8 +31,14 @@ def get_findings_churn(args):
 
 
 def get_findings_perspective(args):
-    # TODO
-    print("findings perspective")
+    url = urllib.parse.urljoin(args.teamscale_url,
+                               "/api/projects/{0}/findings/list/with-count".format(args.teamscale_project))
+    url_parts = list(urllib.parse.urlparse(url))
+    query = {"all": True}
+    url_parts[4] = urllib.parse.urlencode(query)
+    url = urllib.parse.urlunparse(url_parts)
+
+    requests.get(url, auth=(args.teamscale_user, args.teamscale_access_key))
 
 
 def run_benchmark(benchmark_function, args):
@@ -40,7 +46,7 @@ def run_benchmark(benchmark_function, args):
     test_run = 1
     start_all = datetime.datetime.now()
     while len(measurements) < 10:
-        print("Running {0} for the {1} time:".format(benchmark_function.__name__, test_run))
+        print("Running {0} for the {1} time".format(benchmark_function.__name__, test_run))
         try:
             start = time.time()
             benchmark_function(args)
