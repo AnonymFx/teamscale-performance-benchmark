@@ -5,7 +5,6 @@ import os
 import statistics
 import time
 import urllib.parse
-import json
 
 import requests
 import teamscale_client.data
@@ -74,7 +73,8 @@ def run_benchmark(benchmark_function, args):
 
     end_all = datetime.datetime.now()
 
-    additional_metrics = [statistics.mean(measurements), statistics.median(measurements)]
+    additional_metrics = [statistics.mean(measurements), statistics.median(measurements), max(measurements),
+                          min(measurements)]
     results = ["{0}".format(benchmark_function.__name__)] + \
               ["{0}".format(start_all.timestamp()), "{0}".format(start_all)] + \
               ["{0}".format(end_all.timestamp()), "{0}".format(end_all)] + \
@@ -92,7 +92,7 @@ def write_csv_row(file, row):
 
 def generate_csv_header():
     header = ["benchmark_name", "start_timestamp", "start_time", "end_timestamp", "end_time",
-              "number_of_active_workers", "job_queue_size", "mean", "median"]
+              "number_of_active_workers", "job_queue_size", "mean", "median", "max", "min"]
     for i in range(1, 11):
         header.append("measurement_{0}".format(i))
     return header
