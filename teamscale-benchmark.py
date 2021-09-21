@@ -1,6 +1,7 @@
 import argparse
 import csv
 import datetime
+import multiprocessing
 import os
 import statistics
 import time
@@ -51,38 +52,58 @@ def get_server_status(args):
     return number_of_active_workers, job_queue_size
 
 
+def try_running_benchmark(benchmark_function, args, measurements):
+    try:
+        start = time.time()
+        benchmark_function(args)
+        end = time.time()
+        benchmark_time = end - start
+        measurements.append(benchmark_time)
+
+    except teamscale_client.data.ServiceError:
+        print("Pre-commit ran two fast back to back, retrying test run {0}".format(len(measurements) + 1))
+        time.sleep(5)
+
+
 def run_benchmark(benchmark_function, args):
-    measurements = []
-    test_run = 1
-    start_all = datetime.datetime.now()
-    number_of_active_workers = -1
-    job_queue_size = -1
-    while len(measurements) < 10:
-        print("Running {0} for the {1} time".format(benchmark_function.__name__, test_run))
-        try:
-            start = time.time()
+    with multiprocessing.Manager() as manager:
+        timeout = 20 * 60  # 20 Minutes
+        measurements = manager.list()
+        start_all = datetime.datetime.now()
+        number_of_active_workers = -1
+        job_queue_size = -1
+        while len(measurements) < 10:
             (number_of_active_workers, job_queue_size) = get_server_status(args)
-            benchmark_function(args)
-            end = time.time()
-            benchmark_time = end - start
-            measurements.append(benchmark_time)
-            test_run = test_run + 1
-        except teamscale_client.data.ServiceError:
-            print("Pre-commit ran two fast back to back, retrying test run {0}".format(test_run))
-            time.sleep(5)
+            print("Running {0} for the {1} time".format(benchmark_function.__name__, len(measurements) + 1))
 
-    end_all = datetime.datetime.now()
+            # https://stackoverflow.com/questions/492519/timeout-on-a-function-call
+            process = multiprocessing.Process(target=try_running_benchmark,
+                                              args=(benchmark_function, args, measurements))
+            process.start()
+            process.join(timeout)
 
-    additional_metrics = [statistics.mean(measurements), statistics.median(measurements), max(measurements),
-                          min(measurements)]
-    results = ["{0}".format(benchmark_function.__name__)] + \
-              ["{0}".format(start_all.timestamp()), "{0}".format(start_all)] + \
-              ["{0}".format(end_all.timestamp()), "{0}".format(end_all)] + \
-              ["{0}".format(number_of_active_workers), "{0}".format(job_queue_size)] + \
-              list(map(lambda value: "{:10.20f}".format(value), additional_metrics)) + \
-              list(map(lambda value: "{:10.20f}".format(value), measurements))
+            if process.is_alive():
+                process.terminate()
+                process.join()
+                break
 
-    return results
+        end_all = datetime.datetime.now()
+
+        additional_metrics = ["", "", "", ""]
+        if len(measurements) > 0:
+            additional_metrics = ["{:10.20f}".format(statistics.mean(measurements)),
+                                  "{:10.20f}".format(statistics.median(measurements)),
+                                  "{:10.20f}".format(max(measurements)),
+                                  "{:10.20f}".format(min(measurements))]
+
+        results = ["{0}".format(benchmark_function.__name__)] + \
+                  ["{0}".format(start_all.timestamp()), "{0}".format(start_all)] + \
+                  ["{0}".format(end_all.timestamp()), "{0}".format(end_all)] + \
+                  ["{0}".format(number_of_active_workers), "{0}".format(job_queue_size)] + \
+                  additional_metrics + \
+                  list(map(lambda value: "{:10.20f}".format(value), measurements))
+
+        return results
 
 
 def write_csv_row(file, row):
