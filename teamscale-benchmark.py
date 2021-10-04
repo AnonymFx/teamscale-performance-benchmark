@@ -18,6 +18,7 @@ def run_precommit(args):
         os.path.join(args.precommit_project_folder, ".teamscale-precommit.config"))
     precommit_client = PrecommitClient(teamscale_config, args.precommit_project_folder)
     precommit_client.run()
+    return True
 
 
 def get_findings_churn(args):
@@ -28,7 +29,12 @@ def get_findings_churn(args):
     url_parts[4] = urllib.parse.urlencode(query)
     url = urllib.parse.urlunparse(url_parts)
 
-    requests.get(url, auth=(args.teamscale_user, args.teamscale_access_key))
+    response = requests.get(url, auth=(args.teamscale_user, args.teamscale_access_key))
+
+    if not response.ok:
+        print(response.text)
+
+    return response.ok
 
 
 def get_findings_perspective(args):
@@ -39,7 +45,12 @@ def get_findings_perspective(args):
     url_parts[4] = urllib.parse.urlencode(query)
     url = urllib.parse.urlunparse(url_parts)
 
-    requests.get(url, auth=(args.teamscale_user, args.teamscale_access_key))
+    response = requests.get(url, auth=(args.teamscale_user, args.teamscale_access_key))
+
+    if not response.ok:
+        print(response.text)
+
+    return response.ok
 
 
 def get_server_status(args):
@@ -55,10 +66,11 @@ def get_server_status(args):
 def try_running_benchmark(benchmark_function, args, measurements):
     try:
         start = time.time()
-        benchmark_function(args)
+        success = benchmark_function(args)
         end = time.time()
         benchmark_time = end - start
-        measurements.append(benchmark_time)
+        if success:
+            measurements.append(benchmark_time)
 
     except teamscale_client.data.ServiceError:
         print("Pre-commit ran two fast back to back, retrying test run {0}".format(len(measurements) + 1))
