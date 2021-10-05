@@ -72,7 +72,8 @@ def try_running_benchmark(benchmark_function, args, measurements):
         if success:
             measurements.append(benchmark_time)
 
-    except teamscale_client.data.ServiceError:
+    except teamscale_client.data.ServiceError as err:
+        print(err)
         print("Pre-commit ran two fast back to back, retrying test run {0}".format(len(measurements) + 1))
         time.sleep(5)
 
